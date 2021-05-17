@@ -11,8 +11,171 @@ library(janitor)
 options(tigris_class = "sf")
 
 
-# ggplot(va_counties_cb) +
-#   geom_sf()
+#### HOW DO I GET GEOSPATIAL DATA INTO R? #### ----------------------
+
+# There are two primary ways to get geodata into R: through a saved file you import, 
+# or though a package that will help download it directly from the web.
+
+# R can handle almost any type of GIS data, including shapefiles, geodatabases, geoJson, etc.
+# We'll look at the SF package, one of the best packages for doing importing and processing data.
+
+# What are "Simple Features" (SF)?
+# The simple feature geodata format creates an object that behaves much like a dataframe in R, yet has spatial
+# fields that contain the geographic information. This represents a big improvement over previous ways of 
+# handling geospatial data in R.
+# 
+# You may see older references online to the SP package, which is the former way of doing geospatial work. 
+# If you're just starting out, you're much better off focusing your efforts on the SF package from the get-go.
+
+
+
+#### HOW DO I WORK WITH GEOSPATIAL DATA INTO R? #### ----------------------
+
+# There are a bunch of different R packages designed to work with geospatial data.
+# We'll touch on a few of them here, primarily the tmap package, but there are many more.
+# Even ggplot2 itself now has functions to help handle sf objects!
+
+# Let's look as some actual code and examples to get started...
+
+
+
+#### AN EXAMPLE: PLOTTING POINTS #### ----------------------
+
+# We'll use the tigris package to pull census boundary geo data into our session, for a state map of the US.
+# Note that at the end we'll discuss methods for handling Alaska, Hawaii and Puerto Rico - for now we'll
+# take them out for expediency's sake in the example below.
+
+# The tigris package is a wonderful resource for all kinds of boundary files
+# several options for resolution - when using whole nation, 20m is usually better
+# for individual states 5m may be preferable
+
+# by setting options(tigris_class = "sf") at the top, we've told tigris we want simple feature objects returned
+states_geo <- tigris::states(resolution = "20m", cb = TRUE)
+
+# let's take a look as what we have
+states_geo
+
+# looks a lot like a dataframe right?
+# note the "geometry" field 
+# also take note of the CRS, which stands for coordinate reference system; we'll come back to that shortly
+
+# Ok, it's nice I have this GIS data, how do I actually see anything? How do I map it out?
+# This is where you have many different options. But we're going to start by using the powerful tmap package.
+# Keep in mind tmap using the + sign not the pipe, similar ggplot2.  
+
+
+# watch out simple it is to get something initial up to see
+tm_shape(states_geo) + 
+  tm_polygons()
+
+
+# I said for now we'll focus on the lower 48, how can we do that? 
+# Well you can filter sf objects much like you can a regular dataframe/tibble
+
+# First, let's start with just getting rid of U.S. territories, and just keep states, since this
+# is something you'll find yourself doing quite frequently.
+
+# tigris also comes with a handle fips code table built in
+head(fips_codes)
+
+# this can be a great tool to help get down to just U.S. states and DC
+vector_50anddc <- unique(fips_codes$state)[1:51] 
+
+# now we'll filter using our vector, must like we would a normal dataframe
+states_geo <- states_geo %>% 
+  filter(STUSPS %in% vector_50anddc)
+
+# did it work?
+states_geo %>%
+  nrow()
+
+# great, now let's take out AK and HI too for now
+states_geo <- states_geo %>% 
+  filter(!STUSPS %in% c("AK", "HI"))
+
+# let's map now to see what we have
+tm_shape(states_geo) + 
+  tm_polygons()
+
+# bingo
+
+# tm_polygons also takes some other arguments, including assigning an ID.
+# one of the powerful is to symbolize the data based on a certain column
+tm_shape(states_geo) +
+  tm_polygons("ALAND", id = "GEOID") #here we feed in the land area, ALAND
+
+#generate it again but this time adding labels
+tm_shape(states_geo) +
+  tm_polygons("ALAND", id = "GEOID") +
+  tm_text("STUSPS", size = .5) #this line adds the labels
+
+# there are numerous parameters and customizations you can do
+
+
+
+# At this point, let's touch on two geospatial concepts:
+
+# 1) What are "cartographic boundaries" and why do we almost always want to use them?
+#      - you may have seen the parameter "cb = TRUE" above
+
+# 2) What is a Coordinate Reference System (CRS) and why is it important for mapping more than one element?
+#      - how can I check the CRS? How can I change it?
+
+# the sf package's st_crs() function returns the CRS of a simple feature object
+st_crs(states_geo)
+
+# This becomes very important when you want to layer different geo datasets, and when doing processing
+# work such as spatial joins, or measuring distances and such.
+# You want all the data to be using the same CRS, or you could wind up with distorted or incorrect results.
+
+
+
+
+
+
+
+### ADD CITIES AS POINTS ####
+
+targetcities <- read_excel("processed_data/targetcities.xlsx", 
+                           sheet = "Sheet1", col_types = c("text", 
+                                                           "text", "text", "text", "text", "text", 
+                                                           "text", "numeric", "numeric", "numeric", 
+                                                           "numeric", "text", "text", "text"))
+
+
+targetcities <- targetcities %>% 
+  filter(state_id %in% vector_lower48)
+
+
+targetcities_geo <- st_as_sf(targetcities, coords = c("lng", "lat"), crs = 4326)
+
+st_crs(targetcities_geo)
+st_crs(states_geo)
+
+
+states_geo <- st_transform(states_geo, crs = 4326)
+st_crs(states_geo)
+
+tm_shape(targetcities_geo) + tm_dots()
+
+
+mymap <- tm_shape(states_geo) + tm_polygons() +
+  tm_shape(targetcities_geo) + tm_dots(col = "red", size = 1)
+
+mymap
+
+
+
+
+#we can either use the "export" button directly from the viewer to save as pdf...
+#...or do it using the following code:
+tmap_save(mymap, "mymap.pdf")
+
+
+
+
+
+
 
 
 # what are cartographic boundaries (CB)? ####
@@ -36,18 +199,6 @@ tm_shape(va_counties_cb) +
 
 
 
-### National Maps of the US ####
-
-# several options for resolution - when using whole nation, 20m is usually better
-# for individual states 5m may be preferable
-# we'll use the tigris package to directly pull down the geodata into R
-usstates_geo <- tigris::states(resolution = "20m", cb = TRUE)
-
-ggplot(usstates_geo) +
-  geom_sf()
-
-tm_shape(usstates_geo) + 
-  tm_polygons()
 
 
 
@@ -57,7 +208,7 @@ tm_shape(usstates_geo) +
 
 
 
-### DEMO CASE - CONGRESSIONAL DISTRICT DEMOGRAHPICS AND VOTING ####
+### DEMO CASE - CONGRESSIONAL DISTRICT DEMOGRAPHICS AND VOTING ####
 
 # load dataset of district characteristics
 alldistricts <- readRDS("data/alldistricts.rds")
