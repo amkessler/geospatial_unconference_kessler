@@ -221,7 +221,6 @@ alldistricts <- readRDS("data/alldistricts.rds")
 
 alldistricts
 
-
 # Since above we used the tigris package to get our base map, this time let's see what's
 # involved in loading a geospatial file you already have yourself and want to bring into R.
 cd_geo <- st_read("data/cb_2018_us_cd116_20m/cb_2018_us_cd116_20m.shp")
@@ -234,7 +233,7 @@ districtmap <- inner_join(cd_geo, alldistricts, by = c("GEOID" = "geoid"))
 
 # did it work?
 glimpse(districtmap)
-# woohoo!
+# woohoo
 
 # remove AK and HI for expediency here again
 districtmap <- districtmap %>% 
@@ -324,22 +323,22 @@ mymap
 tm_shape(districtmap) +
   tm_polygons()
 
-# So we've got what we need to spatially join the two and determine what district each city is in
-
-# Let's make sure we align the CRS. In this case I'll save a new object to keep it distinct from the earlier one.
-cities_geo_forcds <- st_transform(cities_geo, st_crs(districtmap))
-
-st_crs(cities_geo_forcds)
-st_crs(districtmap)
-
 # Before we join, it's always good practice to visually look at what you have. 
 # This will tell you if anything weird is happening you need to deal with first.
 tm_shape(districtmap) + tm_polygons() +
-  tm_shape(cities_geo_forcds) + tm_dots(col = "red", size = 0.1)
+  tm_shape(cities_geo) + tm_dots(col = "red", size = 0.1)
+
+# Let's make sure we align the CRS and we'll apply a planar CRS just to be safe (thanks H Recht!)
+# We'll create two new objects here to keep them distinct from the previous ones
+districtmap_forjoin <- st_transform(districtmap, 2163)
+cities_geo_forjoin <- st_transform(cities_geo, st_crs(districtmap_forjoin))
+
+st_crs(cities_geo_forjoin)
+st_crs(districtmap_forjoin)
 
 
 # Now let's do the join using sf's st_join() function
-joined <- st_join(cities_geo_forcds, districtmap)
+joined <- st_join(cities_geo_forjoin, districtmap_forjoin)
 
 # Did it work?
 joined # %>% View()
@@ -351,10 +350,11 @@ joined %>%
 # Cool, that's better. Though notice the geometry always travels with it.
 # What if you wanted to just have a table as the result, without the geometry?
 # The sf package to the rescue again...
-joined %>% 
+matched_table <- joined %>% 
   select(city, state, house_dist) %>% 
   st_set_geometry(NULL)
 
+matched_table
 
 
 
@@ -423,16 +423,13 @@ make_state_map("CA")
 # Now that we know it works for one, we can do it for ALL states in a list we determine.
 # Let's create a vector of all the states in our original map
 vector_targetstates <- districtmap %>% 
-  count(state) %>% 
   st_set_geometry(NULL) %>% 
+  count(state) %>% 
   pull(state)
   
 # Then we'll use that to feed into our new function to loop through everything at once.
 # We'll iterate through them all using purrr's walk() function
 walk(vector_targetstates, make_state_map)
-
-
-
 
 
 
