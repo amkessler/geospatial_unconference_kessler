@@ -129,86 +129,87 @@ st_crs(states_geo)
 # You want all the data to be using the same CRS, or you could wind up with distorted or incorrect results.
 
 
+### Let's add some cities as points ####
 
+# load a sample of US cities
+cities <- read_csv("data/cities_with_coordinates.csv")
 
+cities
 
+# now we can create a geospatial object using the coordinates
+# can can specify a crs
+cities_geo <- st_as_sf(cities, coords = c("lon", "lat"), crs = 4269)
 
-
-### ADD CITIES AS POINTS ####
-
-targetcities <- read_excel("processed_data/targetcities.xlsx", 
-                           sheet = "Sheet1", col_types = c("text", 
-                                                           "text", "text", "text", "text", "text", 
-                                                           "text", "numeric", "numeric", "numeric", 
-                                                           "numeric", "text", "text", "text"))
-
-
-targetcities <- targetcities %>% 
-  filter(state_id %in% vector_lower48)
-
-
-targetcities_geo <- st_as_sf(targetcities, coords = c("lng", "lat"), crs = 4326)
-
-st_crs(targetcities_geo)
+st_crs(cities_geo)
 st_crs(states_geo)
 
+# looks like they're the same crs - but are they exactly the same?
+# sometimes helps to be extra sure that the text is identical
+# we can change a CRS by using st_transform()
+cities_geo <- st_transform(cities_geo, st_crs(states_geo))
 
-states_geo <- st_transform(states_geo, crs = 4326)
+# now let's look again
+st_crs(cities_geo)
 st_crs(states_geo)
 
-tm_shape(targetcities_geo) + tm_dots()
+# great, now let's map our new point layer on top of the base map
+tm_shape(states_geo) + tm_polygons() +
+  tm_shape(cities_geo) + tm_dots()
+
+# They're on there! 
+# Little hard to see though, let's fiddle with the size and color
+tm_shape(states_geo) + tm_polygons() +
+  tm_shape(cities_geo) + tm_dots(col = "red", size = 1)
 
 
+# we can actually save our tmap as its own object as well
 mymap <- tm_shape(states_geo) + tm_polygons() +
-  tm_shape(targetcities_geo) + tm_dots(col = "red", size = 1)
+  tm_shape(cities_geo) + tm_dots(col = "red", size = 0.1)
 
 mymap
 
 
-
-
-#we can either use the "export" button directly from the viewer to save as pdf...
-#...or do it using the following code:
+# We can either use the "export" button directly from the viewer to save as pdf...
+# ...or do it using the following code:
 tmap_save(mymap, "mymap.pdf")
 
 
+# We can also save it as an RDS file - the entire map becomes the saved object
+saveRDS(mymap, "mymap.rds")
+
+# why might we want to do this?
+# one use case: if displaying in a complex map on an rmarkdown document / website, 
+# you don't have to compute it on the fly, can use the pre-processed result instead
+map_to_include <- readRDS("mymap.rds")
+
+map_to_include
+
+
+### Wish your tmap was interactive instead of static? ####
+
+# While it doesn't have the same level of specific customization as using the leaflet package
+# directly (example of that later on), you can actually turn your map object in tmap into a 
+# leaflet map by running a single line of code: setting the tmap_mode()
+
+# let's take a look
+tmap_mode(mode = "view")
+
+# what's what happens
+mymap
+
+# want to go back to static?
+tmap_mode(mode = "plot")
+
+mymap
+
+# nice
 
 
 
 
 
 
-# what are cartographic boundaries (CB)? ####
-
-# look at the difference between this...
-va_counties_noncb <- counties(state = "VA")
-
-tm_shape(va_counties_noncb) + 
-  tm_polygons()
-
-
-# ...and this:
-va_counties_cb <- counties(state = "VA", cb = TRUE)
-
-tm_shape(va_counties_cb) + 
-  tm_polygons()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### DEMO CASE - CONGRESSIONAL DISTRICT DEMOGRAPHICS AND VOTING ####
+### AN EXAMPLE: CHOROPLETH MAPS OF HOUSE DISTRICT DEMOGRAPHICS AND VOTING ####
 
 # load dataset of district characteristics
 alldistricts <- readRDS("data/alldistricts.rds")
@@ -241,8 +242,6 @@ tm_shape(districtmap) +
 tm_shape(districtmap) +
   tm_polygons("prez_winner_2016", id = "house_dist")
 
-# tmap_mode(mode = "view")
-# tmap_mode(mode = "plot")
 
 
 # you can also filter our geospatial dataset to create subsets
@@ -287,14 +286,6 @@ map_rheld_demadvantage_byeducation
 tmap_save(map_rheld_demadvantage_byeducation, "map_rheld_demadvantage_byeducation.pdf")
 
 
-# and we can also save it as an RDS file - the entire map becomes the saved object
-saveRDS(map_rheld_demadvantage_byeducation, "data/map_rheld_demadvantage_byeducation.rds")
-
-# why might we want to do this?
-# one use case: if displaying in a rmarkdown document / website
-map1 <- readRDS("data/map_rheld_demadvantage_byeducation.rds")
-
-map1
 
 
 
