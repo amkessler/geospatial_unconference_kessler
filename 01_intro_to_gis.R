@@ -11,7 +11,7 @@ library(janitor)
 options(tigris_class = "sf")
 
 
-#### HOW DO I GET GEOSPATIAL DATA INTO R? #### ----------------------
+#### HOW DO I GET GEOSPATIAL DATA INTO R? #### -----------------------------------------------------------
 
 # There are two primary ways to get geodata into R: through a saved file you import, 
 # or though a package that will help download it directly from the web.
@@ -29,7 +29,7 @@ options(tigris_class = "sf")
 
 
 
-#### HOW DO I WORK WITH GEOSPATIAL DATA INTO R? #### ----------------------
+#### HOW DO I WORK WITH GEOSPATIAL DATA INTO R? #### ------------------------------------------------------
 
 # There are a bunch of different R packages designed to work with geospatial data.
 # We'll touch on a few of them here, primarily the tmap package, but there are many more.
@@ -39,7 +39,7 @@ options(tigris_class = "sf")
 
 
 
-#### AN EXAMPLE: PLOTTING POINTS #### ----------------------
+#### AN EXAMPLE: PLOTTING POINTS #### ---------------------------------------------------------------------
 
 # We'll use the tigris package to pull census boundary geo data into our session, for a state map of the US.
 # Note that at the end we'll discuss methods for handling Alaska, Hawaii and Puerto Rico - for now we'll
@@ -202,29 +202,38 @@ tmap_mode(mode = "plot")
 
 mymap
 
-# nice
+# nice...
 
 
 
 
 
 
-### AN EXAMPLE: CHOROPLETH MAPS OF HOUSE DISTRICT DEMOGRAPHICS AND VOTING ####
+### AN EXAMPLE: CHOROPLETH MAPS OF HOUSE DISTRICT DEMOGRAPHICS AND VOTING #### --------------------
 
-# load dataset of district characteristics
+# We've done something with points, let's now look at a real-world choropleth use case
+
+# load dataset of district characteristics for pre-2018 election U.S. House districts
 alldistricts <- readRDS("data/alldistricts.rds")
 
-# congressional districts - we'll use a shapefile here this time to mix things up
-# after using the tigris package earlier
+alldistricts
+
+
+# Since above we used the tigris package to get our base map, this time let's see what's
+# involved in loading a geospatial file you already have yourself and want to bring into R.
 cd_geo <- st_read("data/cb_2018_us_cd116_20m/cb_2018_us_cd116_20m.shp")
 
-# join our dataset to geography 
-# note that we can use dplyr's inner join here
+head(cd_geo)
+
+# join our district dataset to its geography 
+# note that we can use dplyr's inner join here to join on the FIPS code (named geoid in the tables)
 districtmap <- inner_join(cd_geo, alldistricts, by = c("GEOID" = "geoid"))
 
+# did it work?
 glimpse(districtmap)
+# woohoo!
 
-# remove AK and HI for expediency here
+# remove AK and HI for expediency here again
 districtmap <- districtmap %>% 
   filter(state_name != "Alaska",
          state_name != "Hawaii")
@@ -232,20 +241,24 @@ districtmap <- districtmap %>%
 
 # Use TMAP to map it out
 
-tm_shape(districtmap) +
-  tm_polygons()
+tmap_mode(mode = "plot")
 
 tm_shape(districtmap) +
   tm_polygons(id = "house_dist")
 
-
+# now let's actually do some analysis...
+# which districts did Trump or Clinton carry in 2016?
+# again you can customize color schemes, labels, etc... we'll just keep defaults for now.
 tm_shape(districtmap) +
   tm_polygons("prez_winner_2016", id = "house_dist")
 
+# let's look at whether a district is above/below the national average for pct with a college degree?
+tm_shape(districtmap) +
+  tm_polygons("pct_ed_college_all_abovebelow_natl", id = "house_dist")
 
 
 # you can also filter our geospatial dataset to create subsets
-# let's look at just GOP-held seats where the race was favoring the Dems
+# let's look at just GOP-held seats where the race was favoring the Dems or a tossup
 rheld_demadvantage <- districtmap %>% 
   filter(incumbent_2018 == "R",
          race_rating_2018 %in% c("likely democratic", "lean democratic", "tossup"))
@@ -256,13 +269,15 @@ tm_shape(rheld_demadvantage) +
 
 # Of course what happens here - we don't have the rest of the CD map shown.
 # So we can simply layer the base CD map underneath the filtered districts
+
 tm_shape(districtmap) +
   tm_polygons(id = "house_dist") +
-  #now we are simply add another shape/polygon combo on top of it
+  #now we are simply add another on top of it, like we did earlier with the points
   tm_shape(rheld_demadvantage) + 
   tm_polygons(col = "red", id = "house_dist") 
 
-# we can also symbolize the filtered districts by a variable
+
+# we can also symbolize the filtered districts by a variable if we want
 tm_shape(districtmap) +
   tm_polygons(id = "house_dist") +
   tm_shape(rheld_demadvantage) +
@@ -288,9 +303,137 @@ tmap_save(map_rheld_demadvantage_byeducation, "map_rheld_demadvantage_byeducatio
 
 
 
+### SPATIAL JOINING ##### -------------------------------------------------------------------
+
+# A spatial join is where instead of joining to tables based on matching a key field, you join two
+# datasets based on their geospatial position in the world so to speak.
+
+# Spatial joining is a mainstay of GIS work, so let's show a very quick example of one way to do it
+# in R, using the data we've already seen.
+# In this case, we had cities above mapped out. What if we wanted to know which congressional districts
+# each city was in?
+
+# We have our cities:
+mymap
+
+# And we have our district boundaries:
+tm_shape(districtmap) +
+  tm_polygons()
+
+# So we've got what we need to spatially join the two and determine what district each city is in
+
+# Let's make sure we align the CRS. In this case I'll save a new object to keep it distinct from the earlier one.
+cities_geo_forcds <- st_transform(cities_geo, st_crs(districtmap))
+
+st_crs(cities_geo_forcds)
+st_crs(districtmap)
+
+# Before we join, it's always good practice to visually look at what you have. 
+# This will tell you if anything weird is happening you need to deal with first.
+tm_shape(districtmap) + tm_polygons() +
+  tm_shape(cities_geo_forcds) + tm_dots(col = "red", size = 0.1)
 
 
-### ROUTE TRACING ##### -----------------------------------------------------
+# Now let's do the join using sf's st_join() function
+joined <- st_join(cities_geo_forcds, districtmap)
+
+# Did it work?
+joined # %>% View()
+
+# We can select just some relevant columns to simplify
+joined %>% 
+  select(city, state, house_dist) 
+
+# Cool, that's better. Though notice the geometry always travels with it.
+# What if you wanted to just have a table as the result, without the geometry?
+# The sf package to the rescue again...
+joined %>% 
+  select(city, state, house_dist) %>% 
+  st_set_geometry(NULL)
+
+
+
+
+### AUTOMATING REPETITIVE GIS WORK ##### ----------------------------------------------------
+
+# You may be asking yourself, I'm already a QGIS or ArcGIS user and can do what you've shown.
+# Is there a benefit to doing it in R?
+# The truth is it's always dependent on your situation and what you're trying to accomplish.
+# One area where R can be especially helpful is when you need to do a bunch of variations of the
+# same thing. Let's take a quick look at an example.
+
+# We'll use a measure from our congressional district data from above to examine pct with college degrees
+tm_shape(districtmap) +
+  tm_polygons("pct_ed_college_all", id = "GEOID")
+
+# Cool, so for the the whole country, that was easy enough.
+# But what about if our need was to have maps for EVERY STATE.
+# A separate map for each showing the same. Perhaps to go with state-specific pages on our website etc.
+
+# First, let's solve for one state. How could we do that...
+
+# Since the state abbreviation isn't in our current districtmap object, let's get it in there
+fips_statelookup <- fips_codes %>% 
+  as_tibble() %>% 
+  select(state, state_code) %>% 
+  distinct()
+
+fips_statelookup
+
+districtmap <- inner_join(districtmap, fips_statelookup, by = c("STATEFP" = "state_code"))
+
+# create slice of just one state
+cd_onestate <- districtmap %>% 
+  filter(state == "CA")
+
+#let's see what we've got
+tm_shape(cd_onestate) +
+  tm_polygons("pct_ed_college_all", id = "GEOID") 
+
+
+# Let's make a FUNCTION now to do this for a state
+# we'll use the state abbreviation to feed into it
+
+make_state_map <- function(stateabbr){
+  #choose state
+  cd_onestate <- districtmap %>% 
+    filter(state == stateabbr)
+  # create cd map for the state
+  mymap_test <-  tm_shape(cd_onestate) +
+    tm_polygons("pct_ed_college_all", id = "GEOID") +
+    tm_text("CD116FP", size = .5)
+  #export file to pdf
+  filename = paste0("stateoutputs/districtmap_", stateabbr, ".pdf")
+  tmap_save(mymap_test, filename)
+}
+
+# try for just one state
+make_state_map("CA")
+
+# let's take a look at the generated pdf file. Did it work?
+
+
+# Now that we know it works for one, we can do it for ALL states in a list we determine.
+# Let's create a vector of all the states in our original map
+vector_targetstates <- districtmap %>% 
+  count(state) %>% 
+  st_set_geometry(NULL) %>% 
+  pull(state)
+  
+# Then we'll use that to feed into our new function to loop through everything at once.
+# We'll iterate through them all using purrr's walk() function
+walk(vector_targetstates, make_state_map)
+
+
+
+
+
+
+
+
+
+
+### ROUTE TRACING ##### -------------------------------------------------------------------
 
 # Will show how to achieve paths-to-a-destination similar to this project:
 # https://www.bloomberg.com/graphics/2021-citylab-how-americans-moved/
@@ -407,7 +550,6 @@ tm_shape(test) +
 usstates_geo_shifted <- states(resolution = "20m", cb = TRUE) %>% 
   shift_geometry(preserve_area = FALSE, position = "below")
 
-
 tm_shape(usstates_geo_shifted) + 
   tm_polygons()
 
@@ -415,4 +557,3 @@ tm_shape(usstates_geo_shifted) +
 #the albersusa also provides functions for dealing with albers projections
 #as well as splitting off AK and HI
 
-## MORE HERE
