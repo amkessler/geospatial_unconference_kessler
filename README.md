@@ -1,6 +1,6 @@
 # geospatial_unconference_kessler
 
-This repo contains materials for my 30-minute presentation on GIS using R at the May 2021 Washington, DC Journalism R "Unconference" hosted by Andrew Ba Tran.
+This repo contains materials for my presentation on introductory GIS using R at the May 2021 Washington, DC Journalism R "Unconference" hosted by Andrew Ba Tran.
 
 If you would like to clone this repo into an R project in one step to follow along, you can do so by running this line in the console:
 
