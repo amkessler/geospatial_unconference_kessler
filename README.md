@@ -16,9 +16,13 @@ The primary geospatial packages we'll be touching on will be:
 
 -   [leaflet](https://rstudio.github.io/leaflet/)
 
+-   [maps](https://www.rdocumentation.org/packages/maps/versions/3.3.0)
+
+-   [geosphere](https://cran.r-project.org/web/packages/geosphere/index.html)
+
 The packages you'll need to install to accompany this repo if you don't have them already can be done by running this code in R:
 
-`install.packages(c("sf", "tmap", "tmaptools", "tigris", "leaflet", "albersusa"))`
+`install.packages(c("sf", "tmap", "tmaptools", "tigris", "leaflet", "albersusa", "rmapshaper", "maps", "geosphere", "htmltools"))`
 
 Note that depending on your operating system, you may need to install several dependencies such as GDAL outside of R itself (i.e. on the computer separately). A helpful walkthrough of how to do this on Windows, Mac and Linux is available from the [Carpentries](https://datacarpentry.org/geospatial-workshop/setup.html).
 
