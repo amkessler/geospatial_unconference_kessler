@@ -2,8 +2,6 @@ library(tidyverse)
 library(tigris)
 library(tmap)
 library(tmaptools)
-library(albersusa)
-library(rmapshaper)
 library(maps)
 library(geosphere)
 library(htmltools)
@@ -431,8 +429,6 @@ walk(vector_targetstates, make_state_map)
 
 
 
-
-
 ### ROUTE TRACING ##### -------------------------------------------------------------------
 
 # Will show how to achieve paths-to-a-destination similar to this project:
@@ -476,7 +472,7 @@ points(zips_nyc_out_TEMP$new_longitude, zips_nyc_out_TEMP$new_latitude,
 
 # overlay location points - PERMANENT moves (some of these may overlap with temp as well)
 points(zips_nyc_out_PERM$new_longitude, zips_nyc_out_PERM$new_latitude, 
-       pch = 3, cex = 0.1, col = "chocolate1")
+       pch = 3, cex = 0.1, col = "orange")
 
 # Now we'll calculate the paths using the geosphere package
 
@@ -510,7 +506,7 @@ points(zips_nyc_out_TEMP$new_longitude, zips_nyc_out_TEMP$new_latitude,
 
 # overlay location points - PERMANENT (some of these may overlap with temp as well)
 points(zips_nyc_out_PERM$new_longitude, zips_nyc_out_PERM$new_latitude, 
-       pch = 3, cex = 0.1, col = "chocolate1")
+       pch = 3, cex = 0.1, col = "orange")
 
 # now we'll use geosphere again as above
 for (i in (1:dim(zips_nyc_out)[1])) { 
@@ -544,10 +540,9 @@ test <- shift_geometry(usstates_geo, preserve_area = FALSE, position = "below")
 tm_shape(test) + 
   tm_polygons()
 
-
 #or you can apply this from the get-go when pulling down geospatial data using tigris
 #can pipe it in on the fly like this:
-usstates_geo_shifted <- states(resolution = "20m", cb = TRUE) %>% 
+usstates_geo_shifted <- tigris::states(resolution = "20m", cb = TRUE) %>% 
   shift_geometry(preserve_area = FALSE, position = "below")
 
 tm_shape(usstates_geo_shifted) + 
@@ -556,4 +551,4 @@ tm_shape(usstates_geo_shifted) +
 
 #the albersusa also provides functions for dealing with albers projections
 #as well as splitting off AK and HI
-
+# remotes::install_github("hrbrmstr/albersusa")
