@@ -40,7 +40,8 @@ options(tigris_class = "sf")
 #### AN EXAMPLE: PLOTTING POINTS #### ---------------------------------------------------------------------
 
 # We'll use the tigris package to pull census boundary geo data into our session, for a state map of the US.
-# Note that at the end we'll discuss methods for handling Alaska, Hawaii and Puerto Rico - for now we'll
+
+# Note that at the end we'll discuss strategies for handling Alaska, Hawaii and Puerto Rico - for now we'll
 # take them out for expediency's sake in the example below.
 
 # The tigris package is a wonderful resource for all kinds of boundary files
@@ -118,6 +119,8 @@ tm_shape(states_geo) +
 
 # 2) What is a Coordinate Reference System (CRS) and why is it important for mapping more than one element?
 #      - how can I check the CRS? How can I change it?
+#      - https://ihatecoordinatesystems.com/
+  
 
 # the sf package's st_crs() function returns the CRS of a simple feature object
 st_crs(states_geo)
@@ -125,6 +128,7 @@ st_crs(states_geo)
 # This becomes very important when you want to layer different geo datasets, and when doing processing
 # work such as spatial joins, or measuring distances and such.
 # You want all the data to be using the same CRS, or you could wind up with distorted or incorrect results.
+
 
 
 ### Let's add some cities as points ####
@@ -267,10 +271,8 @@ tm_shape(rheld_demadvantage) +
 
 # Of course what happens here - we don't have the rest of the CD map shown.
 # So we can simply layer the base CD map underneath the filtered districts
-
 tm_shape(districtmap) +
   tm_polygons(id = "house_dist") +
-  #now we are simply add another on top of it, like we did earlier with the points
   tm_shape(rheld_demadvantage) + 
   tm_polygons(col = "red", id = "house_dist") 
 
@@ -297,6 +299,9 @@ map_rheld_demadvantage_byeducation
 
 # now we can export it
 tmap_save(map_rheld_demadvantage_byeducation, "map_rheld_demadvantage_byeducation.pdf")
+
+
+
 
 
 
@@ -348,6 +353,8 @@ joined %>%
 joined %>% 
   select(city, state, house_dist) %>% 
   st_set_geometry(NULL)
+
+
 
 
 
@@ -422,6 +429,7 @@ vector_targetstates <- districtmap %>%
 # Then we'll use that to feed into our new function to loop through everything at once.
 # We'll iterate through them all using purrr's walk() function
 walk(vector_targetstates, make_state_map)
+
 
 
 
@@ -523,6 +531,7 @@ for (i in (1:dim(zips_nyc_out)[1])) {
 # since the dataset itself still includes them. 
 # So you'd want to similarly filter out those states from the table
 # if doing this for real.
+
 
 
 
