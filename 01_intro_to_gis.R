@@ -368,6 +368,7 @@ tm_shape(districtmap) +
 # But what about if our need was to have maps for EVERY STATE.
 # A separate map for each showing the same. Perhaps to go with state-specific pages on our website etc.
 
+
 # First, let's solve for one state. How could we do that...
 
 # Since the state abbreviation isn't in our current districtmap object, let's get it in there
@@ -443,7 +444,7 @@ zips_nyc_out <- readRDS("data/zips_nyc_out_beyondcity.rds")
 zips_nyc_out
 # View(zips_nyc_out)
 
-## split into permanent and temporary tables ####
+## split into permanent and temporary tables 
 zips_nyc_out_TEMP <- zips_nyc_out %>% 
   filter(temp_moves > 0)
 
