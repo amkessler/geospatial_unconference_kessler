@@ -328,9 +328,11 @@ tm_shape(districtmap) +
 tm_shape(districtmap) + tm_polygons() +
   tm_shape(cities_geo) + tm_dots(col = "red", size = 0.1)
 
-# Let's make sure we align the CRS and we'll apply a planar CRS just to be safe (thanks H Recht!)
-# We'll create two new objects here to keep them distinct from the previous ones
+# Even though cities within districts may turn out ok as we are, let's apply a planar CRS just to be sure.  
+# More information on the differences between coordinate systems here: https://tinyurl.com/t97h947v
+# We'll create two new R objects here to keep them distinct from the previous ones
 districtmap_forjoin <- st_transform(districtmap, 2163)
+# now we'll assign cities to match what we just assigned for districts
 cities_geo_forjoin <- st_transform(cities_geo, st_crs(districtmap_forjoin))
 
 st_crs(cities_geo_forjoin)
