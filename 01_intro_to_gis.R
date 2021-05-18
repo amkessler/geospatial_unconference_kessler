@@ -541,6 +541,10 @@ for (i in (1:dim(zips_nyc_out)[1])) {
 
 ## STRATEGIES FOR DEALING WITH ALASKA, HAWAII AND PUERTO RICO #### -----------------
 
+# Note: keep in mind that these solutions work for displaying state/county shaded mapping,
+# but they won't be something you'd use for layering points, or doing spatial joining etc
+# because the points won't know where to go anymore in the shifted maps
+
 #new feature in latest version of tigris package
 #to help with repositioning AK, HI and PR
 
@@ -559,6 +563,21 @@ tm_shape(usstates_geo_shifted) +
   tm_polygons()
 
 
-#the albersusa also provides functions for dealing with albers projections
+#the ALBERSUSA package also provides functions for dealing with albers projections
 #as well as splitting off AK and HI
+
+# To install from github:
 # remotes::install_github("hrbrmstr/albersusa")
+library(albersusa)
+
+states_albers <- usa_sf("laea")
+
+tm_shape(states_albers) + 
+  tm_polygons()
+
+counties_albers <- counties_sf("aeqd")
+
+tm_shape(counties_albers) + 
+  tm_polygons()
+
+
