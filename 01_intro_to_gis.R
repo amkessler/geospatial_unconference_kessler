@@ -585,7 +585,10 @@ for (i in (1:dim(zips_nyc_out)[1])) {
 #to help with repositioning AK, HI and PR
 
 #can apply to existing sf geospatial objects
-test <- shift_geometry(usstates_geo, preserve_area = FALSE, position = "below")
+
+test <- tigris::states(resolution = "20m", cb = TRUE)
+
+test <- shift_geometry(test, preserve_area = FALSE, position = "below")
 
 tm_shape(test) + 
   tm_polygons()
