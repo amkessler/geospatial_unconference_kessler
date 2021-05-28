@@ -7,6 +7,8 @@ library(maps)
 library(geosphere)
 library(htmltools)
 library(janitor)
+library(rmapshaper)
+library(here)
 options(tigris_class = "sf")
 
 
@@ -117,6 +119,7 @@ tm_shape(states_geo) +
 
 # 1) What are "cartographic boundaries" and why do we almost always want to use them?
 #      - you may have seen the parameter "cb = TRUE" above
+#      - when to use them? when not to use them?
 
 # 2) What is a Coordinate Reference System (CRS) and why is it important for mapping more than one element?
 #      - how can I check the CRS? How can I change it?
@@ -135,7 +138,7 @@ st_crs(states_geo)
 ### Let's add some cities as points ####
 
 # load a sample of US cities
-cities <- read_csv("data/cities_with_coordinates.csv")
+cities <- read_csv(here("data", "cities_with_coordinates.csv"))
 
 cities
 
@@ -174,16 +177,16 @@ mymap
 
 # We can either use the "export" button directly from the viewer to save as pdf...
 # ...or do it using the following code:
-tmap_save(mymap, "mymap.pdf")
+tmap_save(mymap, here("mymap.pdf"))
 
 
 # We can also save it as an RDS file - the entire map becomes the saved object
-saveRDS(mymap, "mymap.rds")
+saveRDS(mymap, here("mymap.rds"))
 
 # why might we want to do this?
 # one use case: if displaying in a complex map on an rmarkdown document / website, 
 # you don't have to compute it on the fly, can use the pre-processed result instead
-map_to_include <- readRDS("mymap.rds")
+map_to_include <- readRDS(here("mymap.rds"))
 
 map_to_include
 
@@ -217,13 +220,13 @@ mymap
 # We've done something with points, let's now look at a real-world choropleth use case
 
 # load dataset of district characteristics for pre-2018 election U.S. House districts
-alldistricts <- readRDS("data/alldistricts.rds")
+alldistricts <- readRDS(here("data", "alldistricts.rds"))
 
 alldistricts
 
 # Since above we used the tigris package to get our base map, this time let's see what's
 # involved in loading a geospatial file you already have yourself and want to bring into R.
-cd_geo <- st_read("data/cb_2018_us_cd116_20m/cb_2018_us_cd116_20m.shp")
+cd_geo <- st_read(here("data", "cb_2018_us_cd116_20m/cb_2018_us_cd116_20m.shp"))
 
 head(cd_geo)
 
@@ -298,7 +301,7 @@ map_rheld_demadvantage_byeducation <- tm_shape(districtmap) +
 map_rheld_demadvantage_byeducation
 
 # now we can export it
-tmap_save(map_rheld_demadvantage_byeducation, "map_rheld_demadvantage_byeducation.pdf")
+tmap_save(map_rheld_demadvantage_byeducation, here("map_rheld_demadvantage_byeducation.pdf"))
 
 
 
@@ -412,8 +415,9 @@ make_state_map <- function(stateabbr){
     tm_polygons("pct_ed_college_all", id = "GEOID") +
     tm_text("CD116FP", size = .5)
   #export file to pdf
-  filename = paste0("stateoutputs/districtmap_", stateabbr, ".pdf")
-  tmap_save(mymap_test, filename)
+  filename <- paste0("districtmap_", stateabbr, ".pdf")
+  print(filename)
+  tmap_save(mymap_test, here("stateoutputs", filename))
 }
 
 # try for just one state
