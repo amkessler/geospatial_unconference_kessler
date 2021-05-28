@@ -121,11 +121,40 @@ tm_shape(states_geo) +
 #      - you may have seen the parameter "cb = TRUE" above
 #      - when to use them? when not to use them?
 
+# with cb
+states_geo <- tigris::states(resolution = "20m", cb = TRUE) %>% 
+              filter(STUSPS %in% vector_50anddc,
+                     !STUSPS %in% c("AK", "HI"))
+
+tm_shape(states_geo) +
+  tm_polygons()
+
+# without cb
+states_geo_nocb <- tigris::states(resolution = "20m") %>% 
+  filter(STUSPS %in% vector_50anddc,
+         !STUSPS %in% c("AK", "HI"))
+
+tm_shape(states_geo_nocb) +
+  tm_polygons()
+
+# Notice what's different? (Hint: look at MI and VA)
+# Also it took a lot longer to plot the non-cb version, even with 20m resolution. Why is that? 
+
+# For large sf objects where you're more interested in visualizing, as opposed to spatial analysis based on distances etc,
+# you can "simplify" the map object to decrease the size and boost rendering speed 
+states_geo_nocb_SIMPLIFIED <- rmapshaper::ms_simplify(states_geo_nocb, keep = 0.1)
+
+# let's see the difference
+tm_shape(states_geo_nocb_SIMPLIFIED) +
+  tm_polygons()
+
+
+
 # 2) What is a Coordinate Reference System (CRS) and why is it important for mapping more than one element?
 #      - how can I check the CRS? How can I change it?
+#      - what's the difference between planar and geodesic?
 #      - https://ihatecoordinatesystems.com/
   
-
 # the sf package's st_crs() function returns the CRS of a simple feature object
 st_crs(states_geo)
 
@@ -135,7 +164,7 @@ st_crs(states_geo)
 
 
 
-### Let's add some cities as points ####
+### LET'S ADD SOME CITIES AS POINTS #### ------------------------------------------------------
 
 # load a sample of US cities
 cities <- read_csv(here("data", "cities_with_coordinates.csv"))
@@ -202,6 +231,9 @@ tmap_mode(mode = "view")
 
 # what's what happens
 mymap
+
+# you can also use the tmap_leaflet() function to convert to a leaflet object and 
+# further customize using the leaflet's own methods
 
 # want to go back to static?
 tmap_mode(mode = "plot")
