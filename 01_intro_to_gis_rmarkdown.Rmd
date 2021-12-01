@@ -38,7 +38,7 @@ options(tigris_class = "sf")
 # The simple feature geodata format creates an object that behaves much like a dataframe in R, yet has spatial
 # fields that contain the geographic information. This represents a big improvement over previous ways of 
 # handling geospatial data in R.
-# 
+# ###
 # You may see older references online to the SP package, which is the former way of doing geospatial work. 
 # If you're just starting out, you're much better off focusing your efforts on the SF package from the get-go.
 
